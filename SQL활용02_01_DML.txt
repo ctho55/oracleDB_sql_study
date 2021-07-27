@@ -1,0 +1,650 @@
+=====================================================
+*** spool 사용하기
+=> spool ... 이후 부터  spool off 까지 실행한 sql 구문이 아래 화일에 보관됨.
+
+sql>spool d:\MTest\sql001.txt 
+
+=> 계속 추가  
+sql>spool d:\MTest\sql001.txt  append 
+ 
+sql>spool off   
+
+-----------------------------------------------------------------
+
+*** @ d:\MTest\sqlStart.txt  => 자동실행 가능
+*** GET d:\MTest\sqlStart.txt    sqlPlus 로 화일 불러오기
+*** edit d:\MTest\boardset.txt   메모장으로 열기
+ 
+sqlplus system/oracle
+conn  system/oracle
+
+set linesize 200
+set pagesize 100
+
+COLUMN id Format a10 ;
+COLUMN password Format a10 ;
+COLUMN birthd Format a10 ;
+COLUMN name Format a10 ;
+COLUMN point Format 99999;
+COLUMN weight Format 99999;
+COLUMN rid Format a10 ;
+
+COLUMN snum Format 999 ;
+COLUMN gnum Format 999 ;
+COLUMN age Format 999 ;
+COLUMN sname Format a10 ;
+COLUMN lang Format a10 ;
+
+COLUMN sno Format 99999 ;
+COLUMN addr Format a15 ;
+COLUMN title Format a15 ;
+COLUMN seq Format 999 ;
+COLUMN content Format a40 ;
+COLUMN regdate Format a12 ;
+
+COLUMN idno Format a14 ;
+COLUMN name Format a10 ;
+COLUMN age Format 999 ;
+COLUMN gender Format a6 ;
+
+
+COLUMN price Format 999999 ;
+COLUMN code Format a10 ;
+
+COLUMN root Format 999 ;
+COLUMN step Format 999 ;
+COLUMN indent Format 999 ;
+
+COLUMN username Format a15 ;
+COLUMN granted_role Format a20 ;
+
+COLUMN Constraint_Name Format a15 ;
+COLUMN Column_Name Format a15 ;
+COLUMN Constraint_Type Format a15 ;
+COLUMN Table_Name Format a15 ;
+
+select * from board ;
+select * from member ;
+=================================================
+
+*** 관련 능력 단위
+
+***  능력단위 : 2001020205_16v4   데이터 입출력 구현
+    ** 능력단위요소
+	=> 2001020205_16v4.3  데이터 조작 프로시저 작성하기 
+     	=> 2001020205_16v4.4  데이터 조작 프로시저 최적화하기
+
+***  능력단위 : 22001020413_16v3   SQL활용
+    ** 능력단위요소
+      => 2001020413_16v3.1 기본 SQL 작성하기
+      => 2001020413_16v3.2 고급 SQL 작성하기
+   
+=================================================
+2001020413_16v3.1 기본 SQL 작성하기
+=================================================
+※기본적인 SQL문  ( Create:insert,  Read:select, U:update,  D:delete )
+
+1. DDL(Data Defineton Language) : 데이터를 정의
+   - create, alter, drop, rename, truncate등
+   - 자동커밋이 발생
+
+2. DML(Data Manipulation Language) : 데이터를 조작하는 기능
+   - select, insert, delete, update
+   - transcation처리(commit, rollback)
+ 
+   ( DQL : 데이타검색 )
+   - select 
+
+3. TCL : Transaction 제어
+   - commit, rollback, savepoint
+
+4. DCL(Data Control Language) : 데이타 제어어
+   - grant,  revoke
+
+** schema : 개요, 윤곽
+** domain : 영역, 범위
+** revoke : 폐지하다
+** grant : 승인하다, 인정하다
+
+====================================================
+*** DML
+==================================================== 
+
+=> 데이터 입력, 조회, 수정, 삭제  ( 기본 연산 : CRUD )
+   	- Create :  Insert
+	- Read   :  Select
+	- Update:  Update
+	- Delete :  Delete
+
+=> commit / rollback 적용
+----------------------------------------------------
+
+1) Table 레코드(row) 입력 : Insert
+
+=> insert into 테이블명[(필드이름1, 필드이름2....)]  values (data1,data2...)
+=> insert into member(name, email, addr) values ('magic','magic@m.com','서울');
+     insert into member  values ('magic','magic@m.com','서울');
+
+2) Table 레코드(row) 수정 : Update문 (데이터의 필드값변경)
+
+=> update 테이블명 set 필드이름1=data1,필드이름2=data2 ..    [where 조건문]
+
+	=> person Test
+	update person set gender='A' ;  // 몽땅 수정됨
+	-> pKey 도 수정 가능 (무결성원칙 적용)
+  
+	=> update student set major='a' ; // 매우주의 해야함
+	     update student set major='a', pay=1000 where sno>4444 ; 	
+	   update tb1a set age=16 where name="이순신"; 
+	   update tb1a set age=16 where age >= 30 ; 
+
+	   update member set password=6789 where lev='B'; 	
+
+	=> member 테이블의 1학년 학생들 몸무게를 모두 90.5 로 수정하기. 
+		update member set weight=90.5 where hakbun like "_1%"; 
+
+	=> member 테이블의 2학년 김씨들 몸무게를 모두 300으로 수정하기. 
+		update member set weight=300 where hakbun like "_2%" and name like "김%"; 
+
+	=> 위의 나머지 2학년 몸무게를 모두 59.9 로 수정하기. 
+		update member set weight=59.9 where hakbun like "_2%" and name not like "김%"; 
+
+
+3) Table 레코드(row) 삭제 : : delete문 (레코드, row 삭제)   
+
+=> delete [from] 테이블명 [where 조건문]
+
+	=> delete from mystu ;  // 매우주의 해야함
+	   delete from tb1B where age=40;
+
+	=> delete from person ;  // 몽땅 삭제됨
+
+
+** 수정, 삭제 시에 where 조건 없으면 모든 데이터에 적용됨. (주의)
+
+------------------------------------------------------------------------------------------
+====================================================
+** 실습
+1) member table 과 동일한 구조와 데이터를 가지는 mymember table 만들기 
+   	- id primary key 부여,
+	- password 값은 '1234' 일괄 변경,
+	- 컬럼 uploadfile 삭제
+	- 컬럼 varchar2(20) addr 추가 하면서 기본값은 '성남시 분당구' 일괄 입력
+
+=> create table mymember as select * from member ;
+=> alter table mymember add primary key (id) ;
+=> update mymember set password='1234' ;
+=> alter table mymember drop column uploadfile ;
+=> alter table mymember add addr varchar2(20) default '성남시 분당구';
+
+
+2) mystu 의 sno 에 제약조건 primary key 부여하기 
+=> alter table mystu add primary key (sno) ;
+-> error : pkey 지정되지 않은 경우에는 중복된 sno 수정가능
+	update mystu set sno=7777 where sname='바나나';
+=> alter table mystu add primary key (sno) ;
+-> Table altered.
+
+ 
+select Constraint_Name,  Constraint_Type, Table_Name from user_Constraints   where Table_Name in('MYFRIEND') ;
+select Constraint_Name, Column_Name, Table_Name from USER_CONS_COLUMNS 
+where Table_Name = 'MYFRIEND' ;
+
+3) mymember에  address 필드 추가하고 '경기도 성남시' 입력하기
+=> alter table mymember add address varchar2(30) default '경기도 성남시' ;
+
+=> alter table mymember add address varchar2(30) ;
+   update mymember set address='성남시 금곡동' ;
+
+4) mymember에  weight 필드 삭제하기
+=> alter table mymember drop column weight ; 
+
+5) mymember의 lev 필드명 grade 로 변경하기
+=> alter table mymember RENAME COLUMN lev to grade;
+
+6) mymember table 이름을 myfriend 로 변경하기
+=> rename mymember to myfriend ;
+
+7) 테이블명 수정 후 UPLOADFILE 컬럼 삭제
+=> alter table myfriend drop column UPLOADFILE ; 
+=> select * from myfriend ;
+------------------------------------------------------------------------------------------
+====================================================
+4) SELECT  질의문(Query:DML) - Table 입력된 자료 확인 
+
+** select문(테이블의 레코드 검색)
+
+    select 필드리스트 
+    from 테이블명 
+    [where 조건] 
+    [group by 필드리스트]
+    [having 조건] 
+    [order by 필드리스트 [asc | desc]];
+    예) select * from member where addr like '%서울%'
+
+SQL> select   *  from  myfriend ;
+
+SQL>set linesize 1200 
+SQL>set pagesize 1200
+
+COLUMN point Format 9999 
+COLUMN name Format a10 
+COLUMN id Format a10 
+COLUMN lev Format a3
+
+** alias (별명) 사용하기
+-> table, field 
+	lev grade ( lev as grade )
+	select id, grade as 등급 from myfriend  ;
+	select id, grade 등급, birthd BirthDay from myfriend  ;
+	=> banana (ordert), myfriend Table 을 이용
+	   orderno , custid, name 출력하기
+
+	=> select id, name 이름 , lev 등급, birthd 생일 from member;
+	=> select name || '의 아이디' as 이름 from member ;
+	=> select name + '의 아이디' as 이름 from member (x);
+
+	
+	=> mystu  이용 hrader 에 번호, 이름, 학과, 급여 
+	select sno as 번호, sname 이름, major 학과, pay 급여 from mystu ;
+
+	select orderno , custid, myfriend.name from banana, myfriend 
+			where banana.custid = myfriend.id ;
+
+	select orderno , custid 고객ID, m.name 고객성명 from banana b, myfriend m 
+			where b.custid = m.id ;
+
+------------------------------------------------------------------------------------------
+=============================================
+* 비교 
+select id from member where exists(select id from board where member.id=board.id);
+=> member,board 에 존재하는 id 만 출력 
+
+select member.id from member, board where member.id=board.id;
+=> member와 board 에 id 가 일치하면 모두 출력 
+    (즉, 일치하는 id가 여러개면 모두 출력 
+	만약, board banana 가 쓴글이 3개면 banana는 3번 모두 출력)
+
+insert into board values(6,'title','banana','Test test',sysdate,0,6,0,0);
+insert into board values(6,'title','banana','Test test',sysdate,0,6,0,0);
+
+
+==============================================
+** 산술 연산자 적용
+=> mymember 에서 point 의 2배를 보너스로 지급 bonus 출력하기
+	select id, name, point,  (point*2)  bonus from mymember ;
+=> mymember 에서 point + weight 출력하기
+	select id,name, point, weight, (point+weight)/2 hgrade from mymember ;
+
+=> mystu 연봉 (pay*12) 출력하기
+     select sno,sname,pay, (pay*12) 년봉 from mystu ;
+
+-> select point+1000  as bonus from member ;
+-> myfriend 모두, id, point, 포인트의 10% 를 추가로 지급 , 변경된 포인트값 출력
+	select id, point, (point*0.1) bonuspoint, (point+(point*0.1)) from myfriend ;
+	-> 위의 값으로 table 의 point 값 변경하기
+	update mymember set point = point+(point*0.1) ;
+ 
+-> select id, point ,   point*12  년합계  from member ;
+-> select id, point ,   point*12  년합계, point+weight  소계  from member ;
+-> select stuno, ko 국어, en 영어, mt 수학, (ko+en+mt) 합계, (ko+en+mt)/3 평균 from student;
+   개인(각 row)별 합계, 평균 을 출력하는 경우   
+	
+--------------------------------------------------------------
+** 함수적용: 여러 row 들에 대한 column별 count, avg, sum, min, max 
+
+=> mymember 의 weight 의 count, sum, avg, min, max
+	select count(*), sum(weight), avg(weight), min(weight), max(weight) from mymember ;
+
+=> count(컬럼명) : 해당 컬럼에 값이 있는 row 의 갯수, 
+=> count(*) : 모든 row 의 갯수
+	- id pppp 의 poin값을 null 로 수정 후 Test
+	update mymember set point=null where id='pppp' ;
+	select count(*), count(point) from mymember ;
+	---------- ------------
+	 COUNT(*) COUNT(POINT)
+	---------- ------------
+	        30           29
+
+
+->복습1) student 에서 sno, sname, 보너스 ( 년봉(1년치 pay) 의 550% )  
+select sno, sname, pay, (pay*12)*5.5 보너스 from student ;
+
+-> 복습2) student 에서 반별로  반코드, 학생수, pay의 합계, 평균, 최소값, 최대값 출력하기  
+select major, count(*), sum(pay), avg(pay), min(pay), max(pay) from student group by major  ;
+
+select major, count(*), sum((pay*12)*5.5) 보너스합계 , avg((pay*12)*5.5) 평균   
+ from student group by major  having major > 'a' ;
+
+select major, count(*), sum((pay*12)*5.5) 보너스합계 , avg((pay*12)*5.5) 평균   
+ from student group by major  having count(*) > 3 ;
+
+---------------------------------------------
+MA   COUNT(*) 보너스합계       평균
+-- ---------- ---------- ----------
+a           4     178200      44550
+---------------------------------------------
+
+-> 복습3) student 에서 반별로  반코드, 반이름, 학생수, pay의 합계, 평균, 최소값, 최대값 출력하기 
+select s.major, m.mname, count(*), sum(s.pay) from student s, mcodet m 
+where s.major = m.major group by s.major, m.mname order by s.major ;
+
+---------------------------------------------
+MA MNAME    COUNT(*) SUM(S.PAY)
+-- ----------    ----------         ----------
+a  스마트웹            4          2700
+b  스마트JAVA       1            200
+c  스마트JSP          1            100
+---------------------------------------------
+
+
+
+-> select count(*), sum(pay), avg(pay), min(pay), max(pay) from mystu ;
+-> select count(*) , max(point), min(point), max(weight), min(weight) from member ;
+=============================
+*** group 별로 함수 적용하기
+=============================
+
+=> mymember 에서 lev 별로 인원수, pointm weight 합계, 평균 출력하기 
+
+     select lev, count(*),sum(point),avg(point),sum(weight),avg(weight) from mymember group by lev order by lev;
+
+=> 추가 : count(*) 결과가 1 보다 큰 경우에만 출력하기 (group 의 조건 'having ') 
+   select lev, count(*),sum(point),avg(point),sum(weight),avg(weight) from mymember 
+group by lev having count(*)>1 order by lev;
+
+
+=> student 에서 조별 인원수 출력하기
+	select  gnum, count(*) from student group by gnum order by gnum;
+
+=> student 에서 조별 인원수, snum 의  sum, avg, min, max 출력하기...
+	select  gnum, count(*),sum(snum), avg(snum), min(snum), max(snum) from student group by gnum order by gnum;
+
+=> group 으로 지정하는 컬럼과 group 함수만 출력 컬럼으로 사용할 수 있음. 
+=> 학과별로 통계 출력 하기
+	
+	select major, count(*), sum(pay), avg(pay), min(pay), max(pay) from mystu group by major ;
+	select major, sname, count(*), sum(pay), avg(pay), min(pay), max(pay) from mystu group by major ;
+	-> ORA-00979: not a GROUP BY expression
+
+
+-> select grade, count(*), sum(point), avg(point), min(point), max(point) from myfriend group by grade;
+   select grade, count(*), sum(point), avg(point), min(point), max(point) from myfriend group by grade order by grade;
+
+-> select lev, count(*) , max(point), min(point), max(weight), min(weight) from member  group by lev;
+
+** Concatenation (연결) 연산자  || 
+
+=> mymember 에서 id+password 고유번호, lev || '등급' grade, weight || 'Kg' from mymember;
+	select id || password 고유번호, lev || ' 등급' grade, weight || ' Kg' weight from mymember;
+
+=> mymember 에서 id+password , lev +'등급' , name 
+	select id || password  고유번호, lev || '등급' grade, name from mymember; 
+
+=> select sno || sname, major, pay || '만원' from student ;
+     select sno, sname, major, pay || '만원' spay  from student ;
+
+=> select id, name || address address from myfriend  ;
+=> select id, grade || '등급 ' || name from myfriend  ;
+
+select id, name, lev  || '등급   '  from member  ;
+select id || name, lev  || '등급', point  from member  ;
+select id || name, lev  || '등급' from member  ;
+
+
+=> gnum 이 1 인 row 에(각자 해당 조를 선택)  대해서 '김화평' 씨는 1 번 입니다.
+	select sname || ' 씨는 ' || snum || '번 입니다.'   result  from student where gnum=1 ;
+	
+
+select lev , name  || '씨의 id는'|| id ||'입니다.' Test from mymember where lev ='C';
+
+
+=> lev 'A'  만 홍길동 씨의 id 는 ‘banana’ 입니다.    출력되도록 해 보세요 ~~ 
+	select name||' 씨의 id 는 ' || id || ' 입니다.' Name_ID  from mymember where lev='A' ;
+
+=> column Name_ID format a19
+=> select name || ' 씨의 id 는 '''  memberName , Id || '''입니다.'  memberID from member ;
+=> select name || ' 씨의 id 는 ''' || Id || ''' 입니다.'  Name_ID from member ;
+
+===============================================
+
+** 다양한 where 조건
+
+*  조건주기
+=> 관계연산자(>, <, >=, <=, =, !=) , 집합연산자 (and , or)등	
+
+-> student 에서 snum 은 10번 이상 이고, 3조 출력하기
+select sname || ' 씨는 ' || snum || '번 입니다.'   result  from student where snum>=10  and  gnum=3  ;
+
+-> student 에서 snum 은 5번 부터 15번까지 출력하기
+select sname || ' 씨는 ' || snum || '번 입니다.'   result  from student where  snum >=5  and  snum <=15  ;
+select sname || ' 씨는 ' || snum || '번 입니다.'   result  from student where  snum between 5 and 15  ;
+
+-> student 에서 snum 은 10 이하  (snum<=10)   , 10 미만 (snum<10) 출력하기
+
+-> mymember 에서 point 100 부터 1000 까지 출력하기
+	select id, point  from mymember where 100 <= point  and point <= 1000 ; 
+	select id, point  from mymember where 100 <= point <= 1000 ;  // 허용안됨
+
+	select id, point  from mymember where point between 100 and 1000 ; 
+
+-> mystu 에서 pay 500 이상 4000 이하 까지 출력하기
+	select * from mystu where 500 <= pay and pay <= 4000 ; 
+-> mystu 에서 pay 500 보다크고 4000 보다 작은 값 출력하기
+	select * from mystu where 500 < (pay*12) and (pay*12) < 4000  order by sname desc; 
+
+	select sno, sname, pay*12 ypay  from mystu where 500 < ypay and ypay < 4000 ; 
+	ORA-00904: "YPAY": invalid identifier
+	( where 에서 컬럼의 alias 사용불가 ) 
+
+	select * from tb1a where name="이순신";	
+	select * from tb1a where age=40;
+
+-> select * from member where   1000 > point  and  point >= 100;
+-> member 의 weight 가 80 이상 또는 50 이하 인 member 출력하기
+    select * from member where weight >= 80  or  weight <= 50 ;
+-> member 의 point 가 1000 이상 또는 10 이하 인 member 출력하기
+    select * from member where point >=1000 or point <=10 ;
+
+
+* 표시범위 제한 (MySQL)
+	select * from member  LIMIT 3 ;
+	
+* 중복된 데이터 제외  DISTINCT 
+=> 결과 row 의 동일성 확인함 ( select 바로 뒤에 위치, 이어 지정된 컬럼들의 동일성 확인 )
+=> 결과적으로 group by 와 유사 
+
+=> 아래 3구문을 비교해 보세요 ~~	
+	select gnum from student order by gnum ;  -> 20개 출력
+	select  DISTINCT  gnum from student order by gnum ;  -> 5개 출력
+	select  DISTINCT  gnum, sname from student order by gnum ;  -> 20개 출력 (같은조에 동명2인 없음으로)
+	select  sname, DISTINCT  gnum  from student order by gnum ; -> ORA-00936: 누락된 표현식
+
+	select name from mymember order by name ;  -> 30개 출력
+	select DISTINCT name  from mymember order by name ; -> 25개 출력
+	select DISTINCT name, id  from mymember order by name ;  -> 30개 출력
+
+* AND => age 가 10대인 자료 검색 , point 가 1000 대인 자료  (1000 ~ 1999)
+	select * from tb1a where age >=10 and age < 20 ;
+	select id, point  from myfriend where (1000 <= point <=1999) ; (X) 
+	select id, point  from myfriend where point>= 1000 and point < 2000 ;
+				
+* OR =>  mymember 에서 weight 40 보다 작고 동시에  90 보다 큰 값 출력하기 (X)
+	mymember 에서 weight 40 보다 작고 또는 90 보다 큰 값 출력하기 (O)
+	select id, weight from mymember where weight < 40 OR weight > 90 ;
+
+	-> mystu 에서 pay 500 보다 작거나 4000 보다 큰 값 출력하기
+	    select * from mystu where 500 > pay or pay > 4000  order by sname desc; 
+	-> mystu 에서 pay 500 미만 이거나 5000 이상인 값 출력하기
+	    select * from mystu where 500 > pay or pay >= 5000  order by sname desc; 
+
+	age 가 10미만 이거나 35 이상인 자료 검색 , 
+	select * from tb1a where age <10 or age >= 35 ;
+
+	point 가 1000 미만 이거나 10000 이상인 자료 검색
+	select * from myfriend where point <1000 or point >= 10000 ;
+
+* NOT => not , <> , != 
+=> lev 가 'A' 아닌 자료 출력
+	select id ,lev from mymember where lev <> 'A';
+	select id ,lev from mymember where lev != 'A' ;
+	select id, lev from mymember where not lev='A' ;
+	select id, lev from mymember where lev != 'B' ;
+	select id, lev from mymember where lev <> 'D' ;
+
+	-> select * from mystu where major not 'a' ;  (X)
+	     ORA-00920: invalid relational operator
+	     select * from mystu where not major='a' ; (O)
+
+	->  select * from mystu where major <> 'a' ;	
+	->  select * from mystu where major != 'a' ;
+
+	등급이 'D' 아닌 회원 출력
+	select id, grade from myfriend where grade <> 'D' ;
+	select id, grade from myfriend where grade != 'D' ;
+	select id, grade from myfriend where not grade = 'D' ;
+
+* BETWEEN  100 AND 200
+=> mystu 에서 pay 300 부터 5000 까지 출력하기
+	select * from mystu where pay between 300 and 5000 ;
+	select * from mystu where major between 'b' and 'c' ;
+
+=> point 가 1000 대인 자료
+        select id, point  from member where point >= 1000 and point < 2000 ;
+    -> select id, point  from myfriend where  point BETWEEN  1000 AND 1999 ;
+
+SQL> select  *  from  guest  where  pay  BETWEEN   100 AND 200  ;
+// 사번이 5000 번대 인사람 출력 BETWEEN 사용해서 ~  
+SQL> select  *  from  guest  where  sabun  BETWEEN   5000 AND 5999  ;
+// 사번이 1000 번대 부터  2000 번대 아닌 사람 출력  BETWEEN 사용해서 ~ 
+SQL> select  *  from  guest  where  sabun  not  BETWEEN   1000 AND 2999  ;
+
+* IN ( , , )
+
+=> student 에서 1,3,5, 조만 조별로 번호 와 이름 출력하기
+	select id, lev from mymember where lev in('A','B');
+	select snum, sname, gnum from student where gnum=1 or gnum=3 or gnum=5 order by gnum;
+	select snum, sname, gnum from student where gnum in (1,2,3) order by gnum;
+
+
+=> major 가 'a' 또는 'c' 
+ 	select * from mystu where major IN ('a', 'c', 'j', 'k') ;	
+
+=> mymember 에서 id 에 'p' , 's' 가 포함된 member만 IN 을 사용하여 출력 
+	- 1단계
+	select id, name from mymember where id  like  '%p%'  or   id  like  '%s%' ;
+	- 2단계
+	select id, name from mymember where id  IN ('%p%','%s%') ;
+	-> 선택된 레코드가 없습니다.  ( in 은 동일성 비교이기 때문)
+
+=> lev 가 A, C, D 인 member 출력
+     select id, name, lev from member where lev='A' or lev='C' or lev='D' ;
+     select id, name, grade from myfriend where grade IN ('A' ,'B' ,'C') ;
+
+SQL>select  *  from  guest  where  title  IN ( ‘Coffee’, ‘Bank’,'card')  ;
+SQL>select  *  from  guest  where  title = ‘Coffee’ or  title = ‘Bank’ or  title ='card'  ;
+SQL>select  *  from  guest  where  title = ‘Coffee’ or ‘Bank’ or 'card'  ; => Error
+
+* LIKE : 퍼지검색 ( % : 임의의 문자열 / _ : 임의의 한글자, 한글도 한글자로 인정 )
+
+	=> id 중에 2번째 알파벳이 a 인 자료 검색
+	select id, name from myfriend where id Like '_a%' ;	
+	
+	=> 성이 오씨 만 검색
+	select * from mystu where sname LIKE '오%' ;
+	select id, name from myfriend where name LIKE '김%' ;  
+
+	=> name의 두번째 글자가  '나' 만 출력
+	select id, name from mymember where name like '_나%' ;  
+	
+	=> id 의 마지막 알파벳이 'e' 인자료 검색
+	select * from member where id like '%e' ;
+
+	=> student 에서 snum 이 3번부터 10명 범위에서 이름에 '김' 이 포함된 자료 검색하기
+	select snum,sname from student where snum between 3 and 12 and sname like '%김%';
+	 
+	=> 이름중에 '길' 이 포함된 자료 검색
+	select * from mystu where sname LIKE '%오%' ;
+	select * from mystu where sname LIKE '_오%' ;
+	select * from mystu where sname LIKE '_길%' ;
+	select * from mystu where sname LIKE '%길' ;
+
+	select id, name from myfriend where name LIKE '%길%' ; 
+	select id, name from myfriend where name LIKE '_길%' ; 
+	select id, name from myfriend where name LIKE '%김%' ; 
+	select id, name, lev from member where name LIKE '홍%' ;
+	=> board 에서 title 에 Spring 이 포함된 자료 출력하기 
+	select seq, title from board where title like '%Spring%' or title like '%스프링%';
+	select id, name, lev from member where id LIKE '%java%' ;
+	select id, name, lev from member where id LIKE '%m%' ;
+
+	=> 성이 홍씨 아닌 자료만 검색 (Not 의 위치)
+	select * from mystu where  NOT sname  LIKE '오%' ;  (O)
+	select id, name from myfriend where name NOT LIKE '홍%' ;  (O)
+	
+	select id, name, lev from member where name  NOT LIKE '김%' ;	
+	
+	=> 2학년만 검색
+	select * from tb1a where number LIKE '_2%' ;
+	
+	=> 전체학생중 해킹반은 모두 검색
+	select * from tb1a where number LIKE 'H%' ;
+
+	=> 1학년 해킹반 검색 
+	select * from tb1a where number LIKE 'H1%' ;
+
+	
+	
+
+* is NULL / is Not NULL
+	
+	select * from mymember where point Is NULL ;
+	select * from mymember where point = NULL ; 
+	-> X : 선택된 레코드가 없습니다. (error 발생안됨 주의)
+	select * from mymember where point Is Not NULL ;
+
+	select id, name, password from myfriend where password Is NULL ;
+	select id, name, password from myfriend where password Is Not NULL ;
+
+** 순서 정렬 
+	( default : ascending )
+	select id, name, password from member order by id ;
+
+* 오름차순 
+	=> 복수 컬럼 적용가능  
+	-> student 에서 조별 desc, 조장이 먼저나오고, snum asc 출력
+	select * from student order by gnum desc,note asc, snum asc; 
+	select * from student where note is null ; 
+	select * from student where note is Not null ; 
+	( asc 정렬시 null 값이 먼저 나오지 않음 ) 
+
+	-> mymember 1순위 이름순,   2순위  id 순
+	select name, id from mymember order by name asc, id asc ;
+
+	-> mymember 1순위 weight 무거운 순서로,   2순위  id 순 오름차순
+		( 영문 : 대문자 < 소문자 )
+	select name, id, weight from mymember order by weight desc, id asc ;
+	select point, id, name from mymember order by point desc, id asc ;
+		
+	=> id 의 오름차순 출력
+	select id, name from myfriend order by id ;
+	=> name 의 내림차순 출력
+	select id, name from myfriend order by name desc ;
+
+	select age, name from tb1a order by age ;
+	= select age, name from tb1a order by age ASC;
+
+* 내림차순 
+	select age, name from tb1a order by age DESC;
+
+* 표시범위 제한 (MySQL)
+	select age, name from tb1a order by age DESC LIMIT 3 ;	
+	=> 나이순 내림차순으로 위에서 3건 표시
+
+* where 조건과 같이 사용가능
+	select * from tb1a where age<20 order by age ;
+
+	=> 새싹 등급만 id의 desc 순으로
+	select id, name, grade from myfriend where grade='D' order by id desc;
+
+=================================================
